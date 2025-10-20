@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GollGlobal – Clean Water Anywhere Anytime</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --blue:#00aaff; --green:#00c897; --bg:#f8fcff; --text:#06283d;
+      --card:#fff; --border:#e0eef5; --muted:#6b7c8f;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+    header{padding:24px 16px;text-align:center}
+    header h1{font-size:28px;font-weight:700;color:var(--blue)}
+    header p{color:var(--muted);margin-top:4px;font-size:15px}
+
+    nav{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:16px auto}
+    .tab{padding:10px 16px;border:1px solid var(--border);border-radius:999px;background:var(--card);cursor:pointer;font-weight:600}
+    .tab.active{background:linear-gradient(90deg,var(--blue),var(--green));color:#fff;border:none}
+
+    main{max-width:1000px;margin:0 auto;padding:0 16px 60px}
+    section{display:none;margin-top:20px}
+    section.active{display:block}
+
+    .grid{display:grid;gap:16px}
+    .cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+    @media(max-width:800px){.cols-2,.cols-4{grid-template-columns:1fr}}
+
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+    .kpi{display:flex;flex-direction:column;align-items:center;gap:6px}
+    .kpi .label{color:var(--muted);font-size:13px}
+    .kpi .value{font-size:22px;font-weight:700}
+
+    .chart-box{height:260px}
+    .impact-personal{margin-top:20px;border-top:1px dashed var(--border);padding-top:16px}
+    .impact-personal h4{color:var(--green);margin-bottom:8px}
+    .impact-personal .stats{font-size:15px;color:var(--muted)}
+
+    .media-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+    .media-grid img,.media-grid iframe{width:100%;height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
+
+    .order-box{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:20px}
+    .order-btn{background:linear-gradient(90deg,var(--blue),var(--green));color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer}
+    .order-btn:hover{opacity:.9}
+
+    footer{text-align:center;color:var(--muted);font-size:13px;margin-top:60px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>GollGlobal</h1>
+    <p>Clean Water Anywhere Anytime</p>
+  </header>
+
+  <nav id="tabs">
+    <button class="tab active" data-tab="overview">Übersicht</button>
+    <button class="tab" data-tab="impact">Impact Network</button>
+    <button class="tab" data-tab="map">Karte</button>
+    <button class="tab" data-tab="media">Medien</button>
+    <button class="tab" data-tab="order">Order</button>
+  </nav>
+
+  <main>
+    <!-- ÜBERSICHT -->
+    <section id="overview" class="active">
+      <!-- Projektbeschreibung -->
+      <div class="card">
+        <h3>Projekt</h3>
+        <p style="margin-top:6px">
+          GollGlobal macht sauberes Trinkwasser überall und jederzeit verfügbar. Das portable
+          <b>Atmospheric Water Generator (AWG)</b>-System gewinnt Wasser direkt aus Luftfeuchtigkeit,
+          arbeitet solar/akku-basiert und nutzt einen mehrstufigen Filter.
+          Unser <b>Buy-One-Give-One</b>-Modell: Mit jedem gekauften Gerät wird eine Einheit über
+          NGO-Partner an bedürftige Familien gespendet. Ab <b>2031</b> erreichen wir die
+          <b>Parität</b> – <i>ein verkauftes Gerät = ein gespendetes Gerät</i>.
+        </p>
+      </div>
+
+      <!-- KPIs -->
+      <div class="grid cols-4" style="margin-top:16px">
+        <div class="card kpi"><span class="label">Verkaufte Geräte gesamt</span><span class="value" id="kpiSold">–</span></div>
+        <div class="card kpi"><span class="label">Gespendete Geräte gesamt</span><span class="value" id="kpiDon">–</span></div>
+        <div class="card kpi"><span class="label">Menschen versorgt</span><span class="value" id="kpiPeople">–</span></div>
+        <div class="card kpi"><span class="label">Wasser/Tag</span><span class="value" id="kpiLiters">–</span></div>
+      </div>
+
+      <!-- Geräte-Chart (Verkauft vs. Gespendet) -->
+      <div class="card" style="margin-top:16px">
+        <h3>Geräte p.a. – verkauft vs. gespendet</h3>
+        <div class="chart-box"><canvas id="devicesChart"></canvas></div>
+        <p class="muted" style="margin-top:8px">
+          Hinweis: Bis 2030 steigt der Spendenanteil schrittweise. Ab 2031 gilt Parität (1:1).
+        </p>
+      </div>
+    </section>
+
+    <!-- IMPACT NETWORK -->
+    <section id="impact">
+      <div class="card">
+        <h3>Weltweiter Impact</h3>
+        <div class="grid cols-4" style="margin-top:10px">
+          <div class="kpi"><span class="label">Botschafter</span><span class="value">2 338</span></div>
+          <div class="kpi"><span class="label">Geräte verteilt</span><span class="value" id="kpiTotalDistributed">–</span></div>
+          <div class="kpi"><span class="label">Menschen erreicht</span><span class="value" id="kpiPeople2">–</span></div>
+          <div class="kpi"><span class="label">Liter/Tag</span><span class="value" id="kpiLiters2">–</span></div>
+        </div>
+        <div class="chart-box"><canvas id="impactChart"></canvas></div>
+      </div>
+
+      <div class="card impact-personal">
+        <h4>Dein Impact</h4>
+        <p class="stats">Du hast <b>4</b> Menschen erreicht, <b>2</b> Geräte verkauft, <b>1</b> Gerät gespendet und erzeugst täglich etwa <b>60 L Trinkwasser</b>.</p>
+      </div>
+    </section>
+
+    <!-- KARTE -->
+    <section id="map">
+      <div class="card">
+        <h3>Aktive Regionen</h3>
+        <div id="mapBox" style="height:320px;margin-top:10px;border-radius:8px"></div>
+      </div>
+    </section>
+
+    <!-- MEDIEN -->
+    <section id="media">
+      <div class="card">
+        <h3>Bilder & Videos</h3>
+        <div class="media-grid">
+          <img src="https://via.placeholder.com/400x250?text=Bild+1" alt="Media 1">
+          <img src="https://via.placeholder.com/400x250?text=Bild+2" alt="Media 2">
+          <img src="https://via.placeholder.com/400x250?text=Bild+3" alt="Media 3">
+          <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" allowfullscreen></iframe>
+        </div>
+      </div>
+    </section>
+
+    <!-- ORDER -->
+    <section id="order">
+      <div class="card">
+        <h3>Bestellung</h3>
+        <div class="order-box">
+          <button class="order-btn" onclick="window.location='mailto:info@gollglobal.com?subject=Ger%C3%A4t%20bestellen'">Gerät bestellen – 1 499 €</button>
+          <button class="order-btn" onclick="window.location='mailto:info@gollglobal.com?subject=Ersatz-Akku%20bestellen'">Ersatz-Akku – 249 €</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>© GollGlobal 2025 · Clean Water Anywhere Anytime</footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+  // Tabs
+  document.getElementById("tabs").addEventListener("click",e=>{
+    if(!e.target.classList.contains("tab")) return;
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    e.target.classList.add("active");
+    const id=e.target.dataset.tab;
+    document.querySelectorAll("main section").forEach(s=>s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+  });
+
+  // ---- Daten/Annahmen
+  const YEARS = [2028,2029,2030,2031,2032,2033,2034,2035];
+  const soldPerYear = {2028:15000,2029:30000,2030:45000,2031:60000,2032:75000,2033:100000,2034:120000,2035:140000};
+  // Spenden-Rampe bis 2030, ab 2031 Parität
+  const donateRatioPre2031 = {2028:0.30, 2029:0.40, 2030:0.50};
+
+  const unitsSold = YEARS.map(y=>soldPerYear[y]);
+  const unitsDon  = YEARS.map(y => (y>=2031) ? soldPerYear[y] : Math.round(soldPerYear[y]*(donateRatioPre2031[y]||0.5)));
+
+  // abgeleitete KPIs (vereinfachte Annahmen)
+  const PEOPLE_PER_DEVICE = 5;
+  const LITERS_PER_DEVICE_DAY = 12;
+
+  // KPIs füllen
+  const sum = arr => arr.reduce((a,b)=>a+b,0);
+  const totalSold = sum(unitsSold);
+  const totalDon  = sum(unitsDon);
+  const people    = (totalSold+totalDon)*PEOPLE_PER_DEVICE;
+  const liters    = (totalSold+totalDon)*LITERS_PER_DEVICE_DAY;
+
+  const fmt = n => n.toLocaleString('de-DE');
+  document.getElementById('kpiSold').textContent   = fmt(totalSold);
+  document.getElementById('kpiDon').textContent    = fmt(totalDon);
+  document.getElementById('kpiPeople').textContent = fmt(people)+' +';
+  document.getElementById('kpiLiters').textContent = fmt(liters)+' L';
+
+  document.getElementById('kpiTotalDistributed').textContent = fmt(totalSold+totalDon);
+  document.getElementById('kpiPeople2').textContent          = fmt(people)+' +';
+  document.getElementById('kpiLiters2').textContent          = fmt(liters)+' L';
+
+  // Geräte-Chart (Übersicht)
+  new Chart(document.getElementById("devicesChart"),{
+    type:"bar",
+    data:{
+      labels:YEARS.map(String),
+      datasets:[
+        {label:"Verkaufte Geräte", data:unitsSold, borderColor:"#00aaff", backgroundColor:"rgba(0,170,255,.35)"},
+        {label:"Gespendete Geräte", data:unitsDon,  borderColor:"#00c897", backgroundColor:"rgba(0,200,151,.35)"}
+      ]
+    },
+    options:{responsive:true, plugins:{legend:{position:"bottom"}}, scales:{y:{beginAtZero:true}}}
+  });
+
+  // Impact-Chart (Linie, gleiche Daten)
+  new Chart(document.getElementById("impactChart"),{
+    type:"line",
+    data:{
+      labels:YEARS.map(String),
+      datasets:[
+        {label:"Verkaufte Geräte", data:unitsSold, borderColor:"#00aaff", fill:false, tension:.25},
+        {label:"Gespendete Geräte", data:unitsDon,  borderColor:"#00c897", fill:false, tension:.25}
+      ]
+    },
+    options:{plugins:{legend:{position:"bottom"}}, scales:{y:{beginAtZero:true}}}
+  });
+
+  // Karte
+  const map=L.map('mapBox').setView([10,10],2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(map);
+  [{name:"Accra (Ghana)",coords:[5.56,-0.20]},
+   {name:"Nairobi (Kenya)",coords:[-1.29,36.82]},
+   {name:"Goa (India)",coords:[15.49,73.82]},
+   {name:"Cali (Colombia)",coords:[3.45,-76.53]}]
+   .forEach(l=>L.marker(l.coords).addTo(map).bindPopup(l.name));
+  </script>
+</body>
+</html>
